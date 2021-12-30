@@ -1,4 +1,3 @@
-from logging import log
 import time
 import json
 from loguru import logger
@@ -39,8 +38,7 @@ class CalcService():
         logger.debug(f"Fim de todas as operações em {time.time()-start_time}")
 
         df_response = pd.DataFrame(texts, columns=['textoMensagem'])
-        
-        #df_response = pd.DataFrame(response_predicts, columns=1)
+
         df_response['predict'] = response_predicts
 
         df_response = df_response.drop(columns=['textoMensagem'])
@@ -51,7 +49,25 @@ class CalcService():
 
         return response
 
-
+    # Calculadora pós-fixa de números inteiros e de ponto flutuante, realiza as seguinte operações
+    #   - Multiplicação (digitar * ou multiplicar)
+    #   - Soma (digitar + ou somar)
+    #   - Subtração (digitar - ou subtrair)
+    #   - Divisão (digitar / ou dividir)
+    #   - Potenciação (digitar ˆ ou potenciacao)
+    #   - Módulo (digitar % ou modulo)
+    # Exemplos para teste:
+        # infixa                                  | pós-fixa                | resultado
+        # 5 * ( ( ( 9 + 8 ) * ( 4 * 6 ) ) + 7 )   | 5 9 8 + 4 6 * * 7 + *   | 2075
+        # 5 * ( ( ( 9 - 8 ) * ( 4 * 6 ) ) + 7 )   | 5 9 8 - 4 6 * * 7 + *   | 155
+        # 5 * ( ( ( 9 + 8 ) * ( 4 ˆ 6 ) ) + 7 )   | 5 9 8 + 4 6 ˆ * 7 + *   | 348195
+        # 5 * ( ( ( 9 / 0 ) * ( 4 * 6 ) ) + 7 )   | 5 9 0 / 4 6 * * 7 + *   | divisão por zero
+        # 5 * ( ( ( 10 % 2 ) * ( 4 * 6 ) ) + 7 )  | 5 10 2 % 4 6 * * 7 + *  | 35
+        # 5 * ( ( ( 10 9 + 8 ) * ( 4 * 6 ) ) + 7 )| 5 10 9 8 + 4 6 * * 7 + *| número errado de operandos
+        # 5 * ( ( ( + 8 ) * ( 4 * 6 ) ) + 7 )     | 5 8 + 4 6 * * 7 + *     | número errado de operandos
+        # 5.5 * ( ( ( 9 + 8 ) * ( 4 * 6 ) ) + 7 ) | 5.5 9 8 + 4 6 * * 7 + * | 2282.5
+        # "5 9 8 + 4 6 * * 7 + *", "5 9 8 - 4 6 * * 7 + *", "5 9 8 + 4 6 ˆ * 7 + *", "5 9 0 / 4 6 * * 7 + *", "5 10 2 % 4 6 * * 7 + *", "5 10 9 8 + 4 6 * * 7 + *", "5 8 + 4 6 * * 7 + *", "5.5 9 8 + 4 6 * * 7 + *"
+        # "5 9 8 somar 4 6 * * 7 + *", "5 9 8 subtrair 4 6 multiplicar * 7 + *", "5 9 8 + 4 6 potenciacao * 7 + *", "5 9 0 / 4 6 * * 7 + *", "5 10 2 modulo 4 6 * * 7 + *", "5 10 9 8 + 4 6 * * 7 + *", "5 8 + 4 6 * * 7 + *", "5.5 9 8 + 4 6 * * 7 + *"
     def calcular(self, texts):
         """
         Pega o modelo carregado e aplica em texts
@@ -60,109 +76,68 @@ class CalcService():
 
         response = []
         op = []
-        d = deque(texts)
+        for form in texts:
+            op = form.split(' ')
+            d = deque()
+            err = False
 
-        # enquanto a fila não estiver vazia
-        while (len(d)>=1):
-            # text é igual ao primeiro da fila
-            text = d[0]
-            # se text é inteiro
-            if(str(text).isdigit()):
-                # se a fila possui apenas uma variável
-                if(len(d)==1):
-                    # se a lista de operandos está vazia, chegamos ao
-                    # resultado final, caso contrário, temos um número
-                    # errado de operandos
-                    if(len(op)==0):
-                        response.append(text)
-                        return response
-                    else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                # caso contrário, insere na lista de operandos
+            for text in op:
+                # se text é inteiro
+                if(str(text).isdigit()):
+                    logger.debug(text)
+                    d.append(int(text))
+                # se text é float
+                elif(str(text).replace('.', '', 1).isdigit()):
+                    logger.debug(text)
+                    d.append(float(text))
                 else:
-                    op.append(int(text))
-                    response.append(text)
-                    d.popleft()
-            # se text é float
-            elif(str(text).replace('.','',1).isdigit()):
-                if(len(d)==1):
-                    if(len(op)==0):
-                        response.append(text)
-                        return response
+                    if(len(d) >= 2):
+                        if(text == "*" or text == "multiplicar"):
+                            res = d.pop()*d.pop()
+                            d.append(res)
+                        elif(text == "+" or text == "somar"):
+                            res = d.pop()+d.pop()
+                            d.append(res)
+                        elif(text == "-" or text == "subtrair"):
+                            op2 = d.pop()
+                            op1 = d.pop()
+                            res = op1-op2
+                            d.append(res)
+                        elif(text == "/" or text == "dividir"):
+                            op2 = d.pop()
+                            op1 = d.pop()
+                            if(op2 == 0):
+                                err = True
+                                break
+                            else:
+                                res = op1/op2
+                                d.append(res)
+                        elif(text == "ˆ" or text == "potenciacao"):
+                            op2 = d.pop()
+                            op1 = d.pop()
+                            res = op1**op2
+                            d.append(res)
+                        elif(text == "%" or text == "modulo"):
+                            op2 = d.pop()
+                            op1 = d.pop()
+                            if(op2 == 0):
+                                err = True
+                                break
+                            else:
+                                res = op1 % op2
+                                d.append(res)
+                        else:
+                            err = True
+                            break
                     else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                else:
-                    op.append(float(text))
-                    response.append(text)
-                    d.popleft()
-            # se text não é inteiro nem float, é um operador ou
-            # símbolo não suportado
+                        err = True
+                        break
+
+            # se a pilha não tem somente o resultado como elemnto, há um número errado
+            # de operadores ou operandos então o erro é reportado
+            if(len(d) != 1 or err):
+                response.append(mensagens.ERROR_OP)
             else:
-                if(text=="*" or text=="multiplicar"):
-                    if(len(op)==2):
-                        d.popleft()
-                        res = op[0]*op[1]
-                        d.appendleft(str(res))
-                        if(len(d)>1):
-                            response.append(text)
-                        op = []
-                    else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                elif(text=="+" or text=="somar"):
-                    if(len(op)==2):
-                        d.popleft()
-                        res = op[0]+op[1]
-                        d.appendleft(str(res))
-                        op = []
-                    else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                elif(text=="-" or text=="subtrair"):
-                    if(len(op)==2):
-                        d.popleft()
-                        res = op[0]-op[1]
-                        d.appendleft(str(res))
-                        op = []
-                    else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                elif(text=="/" or text=="dividir"):
-                    if(len(op)==2):
-                        d.popleft()
-                        res = op[0]/op[1]
-                        d.appendleft(str(res))
-                        op = []
-                    else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                elif(text=="ˆ" or text=="potenciação"):
-                    if(len(op)==1):
-                        d.popleft()
-                        res = op[0]*op[0]
-                        d.appendleft(str(res))
-                        op = []
-                    else:
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                elif(text=="%" or text=="módulo"):
-                    if(len(op)==2):
-                        d.popleft()
-                        res = op[0]%op[1]
-                        d.appendleft(str(res))
-                        op = []
-                    else:
-                        d.popleft()
-                        response.append(mensagens.ERROR_OP)
-                        return response
-                else:
-                    d.popleft()
-                    response.append(mensagens.ERROR_OP)
-                    return response    
-        
-        if(len(d)==0 and len(op)>=1):
-            response.append(mensagens.ERROR_OP)
+                response.append(d.pop())
 
         return response

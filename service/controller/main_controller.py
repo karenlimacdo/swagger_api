@@ -9,6 +9,7 @@ from service.util import doc_swagger
 
 pa = api.namespace("")
 
+
 @pa.route('/main', methods=['POST'])
 class MainService(Resource):
 

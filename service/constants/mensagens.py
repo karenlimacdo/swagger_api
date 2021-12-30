@@ -12,7 +12,7 @@ ERROR_OS = 'Nao foi possivel identificar o objeto, \
              verificar o caminho especificado'
 ERROR_NONE_TYPE = 'Arquivo invalido. verifique o tipo do documento.'
 ERROR_KEY = 'Chave incorreta'
-ERROR_OP = "Número incorreto de operadores"
+ERROR_OP = "Número incorreto de operadores ou operandos, ou divisão por zero"
 
 # Sucess Business #
 SUCESSO_GET = "Classificador OK."
