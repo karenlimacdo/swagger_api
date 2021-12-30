@@ -1,9 +1,8 @@
 # Mensagens log API
-INICIO_LOAD_MODEL = "Carregando o modelo..."
-FIM_LOAD_MODEL = "Modelo carregado."
-INICIO_PREDICT = "Iniciando a classificacao..."
-FIM_PREDICT = "Fim do predict."
-MODEL_DEVICE = "Modelo sendo inicializado em: "
+INICIO_LOAD_CALC = "Carregando a caculadora..."
+FIM_LOAD_CALC = "Calculadora carregada."
+INICIO_OP = "Iniciando a operação..."
+FIM_OP = "Fim da operação."
 
 # Error Business #
 ERROR_GENERIC = "Ocorreu um erro generico"
@@ -13,6 +12,7 @@ ERROR_OS = 'Nao foi possivel identificar o objeto, \
              verificar o caminho especificado'
 ERROR_NONE_TYPE = 'Arquivo invalido. verifique o tipo do documento.'
 ERROR_KEY = 'Chave incorreta'
+ERROR_OP = "Número incorreto de operadores"
 
 # Sucess Business #
 SUCESSO_GET = "Classificador OK."
